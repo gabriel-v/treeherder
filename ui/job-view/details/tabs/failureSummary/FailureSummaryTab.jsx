@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import intermittentTemplate from '../../../../partials/main/intermittent.html';
+// import intermittentTemplate from '../../../../partials/main/intermittent.html';
 import { thEvents } from '../../../../js/constants';
 import { isReftest } from '../../../../helpers/job';
 import { getBugUrl } from '../../../../helpers/url';
@@ -9,6 +9,7 @@ import { getBugUrl } from '../../../../helpers/url';
 import ErrorsList from './ErrorsList';
 import ListItem from './ListItem';
 import SuggestionsListItem from './SuggestionsListItem';
+import BugFiler from '../../BugFiler';
 
 
 export default class FailureSummaryTab extends React.Component {
@@ -16,57 +17,89 @@ export default class FailureSummaryTab extends React.Component {
     super(props);
 
     const { $injector } = this.props;
-    this.$timeout = $injector.get('$timeout');
     this.$uibModal = $injector.get('$uibModal');
     this.$rootScope = $injector.get('$rootScope');
+
+    this.state = {
+      isBugFilerOpen: false,
+    };
+  }
+
+  componentDidMount() {
+    this.toggleBugFiler = this.toggleBugFiler.bind(this);
+    this.bugFilerCallback = this.bugFilerCallback.bind(this);
   }
 
   fileBug(suggestion) {
-    const { suggestions, jobLogUrls, logViewerFullUrl, selectedJob, reftestUrl, addBug, pinJob } = this.props;
-    const summary = suggestion.search;
-    const crashRegex = /application crashed \[@ (.+)\]$/g;
-    const crash = summary.match(crashRegex);
-    const crashSignatures = crash ? [crash[0].split('application crashed ')[1]] : [];
-    const allFailures = suggestions.map(sugg => (sugg.search.split(' | ')));
+    const { selectedJob, pinJob } = this.props;
+    // const summary = suggestion.search;
+    // const crashRegex = /application crashed \[@ (.+)\]$/g;
+    // const crash = summary.match(crashRegex);
+    // const crashSignatures = crash ? [crash[0].split('application crashed ')[1]] : [];
+    // const allFailures = suggestions.map(sugg => (sugg.search.split(' | ')));
 
-    const modalInstance = this.$uibModal.open({
-      template: intermittentTemplate,
-      controller: 'BugFilerCtrl',
-      size: 'lg',
-      openedClass: 'filer-open',
-      resolve: {
-        summary: () => (summary),
-        search_terms: () => (suggestion.search_terms),
-        fullLog: () => (jobLogUrls[0].url),
-        parsedLog: () => (logViewerFullUrl),
-        reftest: () => (isReftest(selectedJob) ? reftestUrl : ''),
-        selectedJob: () => (selectedJob),
-        allFailures: () => (allFailures),
-        crashSignatures: () => (crashSignatures),
-        successCallback: () => (data) => {
-          // Auto-classify this failure now that the bug has been filed
-          // and we have a bug number
-          addBug({ id: data.success });
-          this.$rootScope.$evalAsync(
-            this.$rootScope.$emit(
-              thEvents.saveClassification));
-          // Open the newly filed bug in a new tab or window for further editing
-          window.open(getBugUrl(data.success));
-        },
-      },
-    });
     pinJob(selectedJob);
-
-    modalInstance.opened.then(function () {
-      window.setTimeout(() => modalInstance.initiate(), 0);
+    this.setState({
+      isBugFilerOpen: true,
+      suggestion,
+      selectedJob,
     });
+
+    // const modalInstance = this.$uibModal.open({
+    //   template: intermittentTemplate,
+    //   controller: 'BugFilerCtrl',
+    //   size: 'lg',
+    //   openedClass: 'filer-open',
+    //   resolve: {
+        // summary: () => (summary),
+        // search_terms: () => (suggestion.search_terms),
+        // fullLog: () => (jobLogUrls[0].url),
+        // parsedLog: () => (logViewerFullUrl),
+        // reftest: () => (isReftest(selectedJob) ? reftestUrl : ''),
+        // selectedJob: () => (selectedJob),
+        // allFailures: () => (allFailures),
+        // crashSignatures: () => (crashSignatures),
+        // successCallback: () => (data) => {
+        //   // Auto-classify this failure now that the bug has been filed
+        //   // and we have a bug number
+        //   addBug({ id: data.success });
+        //   this.$rootScope.$evalAsync(
+        //     this.$rootScope.$emit(
+        //       thEvents.saveClassification));
+        //   // Open the newly filed bug in a new tab or window for further editing
+        //   window.open(getBugUrl(data.success));
+        // },
+    //   },
+    // });
+
+    // modalInstance.opened.then(function () {
+    //   window.setTimeout(() => modalInstance.initiate(), 0);
+    // });
+  }
+
+  toggleBugFiler() {
+    this.setState({ isBugFilerOpen: !this.state.isBugFilerOpen });
+  }
+
+  bugFilerCallback(data) {
+    const { addBug } = this.props;
+
+    // Auto-classify this failure now that the bug has been filed
+    // and we have a bug number
+    addBug({ id: data.success });
+    this.$rootScope.$evalAsync(
+      this.$rootScope.$emit(
+        thEvents.saveClassification));
+    // Open the newly filed bug in a new tab or window for further editing
+    window.open(getBugUrl(data.success));
   }
 
   render() {
     const {
-      jobLogUrls, logParseStatus, suggestions, errors,
-      bugSuggestionsLoading, selectedJob, addBug,
+      jobLogUrls, logParseStatus, suggestions, errors, logViewerFullUrl,
+      bugSuggestionsLoading, selectedJob, addBug, reftestUrl,
     } = this.props;
+    const { isBugFilerOpen, suggestion } = this.state;
     const logs = jobLogUrls;
     const jobLogsAllParsed = logs.every(jlu => (jlu.parse_status !== 'pending'));
 
@@ -122,6 +155,15 @@ export default class FailureSummaryTab extends React.Component {
               </div>
             </div>}
         </ul>
+        {isBugFilerOpen && <BugFiler
+          isOpen={isBugFilerOpen}
+          toggle={this.toggleBugFiler}
+          suggestion={suggestion}
+          fullLog={jobLogUrls[0].url}
+          parsedLog={logViewerFullUrl}
+          reftestUrl={isReftest(selectedJob) ? reftestUrl : ''}
+          successCallback={this.bugFilerCallback}
+        />}
       </div>
     );
   }

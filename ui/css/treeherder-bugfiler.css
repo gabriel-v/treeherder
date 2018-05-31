@@ -91,6 +91,10 @@
     float: right;
 }
 
+#modalRelatedBugs > input {
+    margin-right: 3px;
+}
+
 #unhelpfulSummaryReason > div:first-child {
     color: red;
 }
