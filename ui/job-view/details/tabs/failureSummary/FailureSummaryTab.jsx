@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-// import intermittentTemplate from '../../../../partials/main/intermittent.html';
 import { thEvents } from '../../../../js/constants';
 import { isReftest } from '../../../../helpers/job';
 import { getBugUrl } from '../../../../helpers/url';
@@ -10,7 +9,6 @@ import ErrorsList from './ErrorsList';
 import ListItem from './ListItem';
 import SuggestionsListItem from './SuggestionsListItem';
 import BugFiler from '../../BugFiler';
-
 
 export default class FailureSummaryTab extends React.Component {
   constructor(props) {
@@ -42,7 +40,6 @@ export default class FailureSummaryTab extends React.Component {
     this.setState({
       isBugFilerOpen: true,
       suggestion,
-      selectedJob,
     });
 
     // const modalInstance = this.$uibModal.open({
@@ -84,12 +81,8 @@ export default class FailureSummaryTab extends React.Component {
   bugFilerCallback(data) {
     const { addBug } = this.props;
 
-    // Auto-classify this failure now that the bug has been filed
-    // and we have a bug number
     addBug({ id: data.success });
-    this.$rootScope.$evalAsync(
-      this.$rootScope.$emit(
-        thEvents.saveClassification));
+    this.$rootScope.$evalAsync(this.$rootScope.$emit(thEvents.saveClassification));
     // Open the newly filed bug in a new tab or window for further editing
     window.open(getBugUrl(data.success));
   }
@@ -159,10 +152,12 @@ export default class FailureSummaryTab extends React.Component {
           isOpen={isBugFilerOpen}
           toggle={this.toggleBugFiler}
           suggestion={suggestion}
+          suggestions={suggestions}
           fullLog={jobLogUrls[0].url}
           parsedLog={logViewerFullUrl}
           reftestUrl={isReftest(selectedJob) ? reftestUrl : ''}
           successCallback={this.bugFilerCallback}
+          jobGroupName={selectedJob.job_group_name}
         />}
       </div>
     );

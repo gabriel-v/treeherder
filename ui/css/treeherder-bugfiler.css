@@ -5,6 +5,15 @@
     padding: 20px;
 }
 
+#modalProductFinderButton {
+    margin: -4px 0 0 5px;
+    line-height: 16px;
+}
+
+#failureSummaryGroup {
+    margin-top: 40px;
+}
+
 #modalSummarylabel {
     margin-top: -5px;
 }

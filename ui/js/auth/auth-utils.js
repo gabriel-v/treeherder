@@ -1,6 +1,5 @@
 import { fromNow } from 'taskcluster-client-web';
 import { WebAuth } from 'auth0-js';
-import { loginCallbackUrl } from '../../helpers/url';
 
 import { loginCallbackUrl } from '../../helpers/url';
 

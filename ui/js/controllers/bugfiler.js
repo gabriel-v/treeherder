@@ -13,11 +13,11 @@ treeherder.controller('BugFilerCtrl', [
         fullLog, parsedLog, reftest, selectedJob, allFailures,
         crashSignatures, successCallback, thNotify) {
 
-        const bzBaseUrl = 'https://bugzilla.mozilla.org/';
-        const hgBaseUrl = 'https://hg.mozilla.org/';
-        const dxrBaseUrl = 'https://dxr.mozilla.org/';
+        // const bzBaseUrl = 'https://bugzilla.mozilla.org/';
+        // const hgBaseUrl = 'https://hg.mozilla.org/';
+        // const dxrBaseUrl = 'https://dxr.mozilla.org/';
 
-        $scope.omittedLeads = ['TEST-UNEXPECTED-FAIL', 'PROCESS-CRASH', 'TEST-UNEXPECTED-ERROR', 'REFTEST ERROR'];
+        // $scope.omittedLeads = ['TEST-UNEXPECTED-FAIL', 'PROCESS-CRASH', 'TEST-UNEXPECTED-ERROR', 'REFTEST ERROR'];
 
         /**
          *  'enter' from the product search input should initiate the search
@@ -82,22 +82,22 @@ treeherder.controller('BugFilerCtrl', [
         $uibModalInstance.initiate = $scope.initiate;
         $uibModalInstance.possibleFilename = '';
 
-        /*
-         *  Find the first thing in the summary line that looks like a filename.
-         */
-        const findFilename = function (summary) {
-            // Take left side of any reftest comparisons, as the right side is the reference file
-            summary = summary.split('==')[0];
-            // Take the leaf node of unix paths
-            summary = summary.split('/').pop();
-            // Take the leaf node of Windows paths
-            summary = summary.split('\\').pop();
-            // Remove leading/trailing whitespace
-            summary = summary.trim();
-            // If there's a space in what's remaining, take the first word
-            summary = summary.split(' ')[0];
-            return summary;
-        };
+        // /*
+        //  *  Find the first thing in the summary line that looks like a filename.
+        //  */
+        // const findFilename = function (summary) {
+        //     // Take left side of any reftest comparisons, as the right side is the reference file
+        //     summary = summary.split('==')[0];
+        //     // Take the leaf node of unix paths
+        //     summary = summary.split('/').pop();
+        //     // Take the leaf node of Windows paths
+        //     summary = summary.split('\\').pop();
+        //     // Remove leading/trailing whitespace
+        //     summary = summary.trim();
+        //     // If there's a space in what's remaining, take the first word
+        //     summary = summary.split(' ')[0];
+        //     return summary;
+        // };
 
         /*
          *  Remove extraneous junk from the start of the summary line
@@ -153,134 +153,134 @@ treeherder.controller('BugFilerCtrl', [
         }
         $scope.modalSummary = 'Intermittent ' + summaryString;
 
-        // Add a product/component pair to suggestedProducts
-        const addProduct = function (product) {
-            // Don't allow duplicates to be added to the list
-            if (!$scope.suggestedProducts.includes(product)) {
-                $scope.suggestedProducts.push(product);
-                $scope.selection.selectedProduct = $scope.suggestedProducts[0];
-            }
-        };
+        // // Add a product/component pair to suggestedProducts
+        // const addProduct = function (product) {
+        //     // Don't allow duplicates to be added to the list
+        //     if (!$scope.suggestedProducts.includes(product)) {
+        //         $scope.suggestedProducts.push(product);
+        //         $scope.selection.selectedProduct = $scope.suggestedProducts[0];
+        //     }
+        // };
 
-        // Some job types are special, lets explicitly handle them.
-        const injectProducts = function (fp) {
-            if ($scope.suggestedProducts.length === 0) {
-                const jg = selectedJob.job_group_name.toLowerCase();
-                if (jg.includes('talos')) {
-                    addProduct('Testing :: Talos');
-                }
-                if (jg.includes('mochitest') && (fp.includes('webextensions/') || fp.includes('components/extensions'))) {
-                    addProduct('WebExtensions :: General');
-                }
-                if (jg.includes('mochitest') && fp.includes('webrtc/')) {
-                    addProduct('Core :: WebRTC');
-                }
-            }
-            $scope.selection.selectedProduct = $scope.suggestedProducts[0];
-        };
+        // // Some job types are special, lets explicitly handle them.
+        // const injectProducts = function (fp) {
+        //     if ($scope.suggestedProducts.length === 0) {
+        //         const jg = selectedJob.job_group_name.toLowerCase();
+        //         if (jg.includes('talos')) {
+        //             addProduct('Testing :: Talos');
+        //         }
+        //         if (jg.includes('mochitest') && (fp.includes('webextensions/') || fp.includes('components/extensions'))) {
+        //             addProduct('WebExtensions :: General');
+        //         }
+        //         if (jg.includes('mochitest') && fp.includes('webrtc/')) {
+        //             addProduct('Core :: WebRTC');
+        //         }
+        //     }
+        //     $scope.selection.selectedProduct = $scope.suggestedProducts[0];
+        // };
 
         /*
          *  Attempt to find a good product/component for this failure
          */
-        $scope.findProduct = function () {
-            $scope.suggestedProducts = [];
-
-            // Look up product suggestions via Bugzilla's api
-            const productSearch = $scope.productSearch;
-
-            if (productSearch) {
-                $scope.searching = 'Bugzilla';
-                $http.get(bzBaseUrl + 'rest/prod_comp_search/' + productSearch + '?limit=5').then(function (request) {
-                    const data = request.data;
-                    // We can't file unless product and component are provided, this api can return just product. Cut those out.
-                    for (let i = data.products.length - 1; i >= 0; i--) {
-                        if (!data.products[i].component) {
-                            data.products.splice(i, 1);
-                        }
-                    }
-                    $scope.searching = false;
-                    $scope.suggestedProducts = [];
-                    $scope.suggestedProducts = data.products.map((prod) => {
-                        if (prod.product && prod.component) {
-                            return prod.product + ' :: ' + prod.component;
-                        }
-                        return prod.product;
-                    });
-                    $scope.selection.selectedProduct = $scope.suggestedProducts[0];
-                });
-            } else {
-                let failurePath = $uibModalInstance.parsedSummary[0][0];
-
-                // If the "TEST-UNEXPECTED-foo" isn't one of the omitted ones, use the next piece in the summary
-                if (failurePath.includes('TEST-UNEXPECTED-')) {
-                    failurePath = $uibModalInstance.parsedSummary[0][1];
-                    $uibModalInstance.possibleFilename = findFilename(failurePath);
-                }
-
-                // Try to fix up file paths for some job types.
-                if (selectedJob.job_group_name.toLowerCase().includes('spidermonkey')) {
-                    failurePath = 'js/src/tests/' + failurePath;
-                }
-                if (selectedJob.job_group_name.toLowerCase().includes('videopuppeteer ')) {
-                    failurePath = failurePath.replace('FAIL ', '');
-                    failurePath = 'dom/media/test/external/external_media_tests/' + failurePath;
-                }
-                if (selectedJob.job_group_name.toLowerCase().includes('web platform')) {
-                    failurePath = failurePath.startsWith('mozilla/tests') ?
-                        `testing/web-platform/${failurePath}` :
-                        `testing/web-platform/tests/${failurePath}`;
-                }
-
-                // Search mercurial's moz.build metadata to find products/components
-                $scope.searching = 'Mercurial';
-                $http.get(`${hgBaseUrl}mozilla-central/json-mozbuildinfo?p=${failurePath}`).then(function (firstRequest) {
-                    if (firstRequest.data.aggregate && firstRequest.data.aggregate.recommended_bug_component) {
-                        const suggested = firstRequest.data.aggregate.recommended_bug_component;
-                        addProduct(suggested[0] + ' :: ' + suggested[1]);
-                    }
-
-                    $scope.searching = false;
-
-                    // Make an attempt to find the file path via a dxr file search
-                    if ($scope.suggestedProducts.length === 0 && $uibModalInstance.possibleFilename.length > 4) {
-                        $scope.searching = 'DXR & Mercurial';
-                        const dxrlink = `${dxrBaseUrl}mozilla-central/search?q=file:${$uibModalInstance.possibleFilename}&redirect=false&limit=5`;
-                        // Bug 1358328 - We need to override headers here until DXR returns JSON with the default Accept header
-                        $http.get(dxrlink, { headers: {
-                            Accept: 'application/json',
-                        } }).then((secondRequest) => {
-                            const results = secondRequest.data.results;
-                            let resultsCount = results.length;
-                            // If the search returns too many results, this probably isn't a good search term, so bail
-                            if (resultsCount === 0) {
-                                $scope.searching = false;
-                                injectProducts(failurePath);
-                            }
-                            results.forEach((result) => {
-                                $scope.searching = 'DXR & Mercurial';
-                                $http.get(`${hgBaseUrl}mozilla-central/json-mozbuildinfo?p=${result.path}`)
-                                    .then((thirdRequest) => {
-                                        if (thirdRequest.data.aggregate && thirdRequest.data.aggregate.recommended_bug_component) {
-                                            const suggested = thirdRequest.data.aggregate.recommended_bug_component;
-                                            addProduct(suggested[0] + ' :: ' + suggested[1]);
-                                        }
-                                        // Only get rid of the throbber when all of these searches have completed
-                                        resultsCount -= 1;
-                                        if (resultsCount === 0) {
-                                            $scope.searching = false;
-                                            injectProducts(failurePath);
-                                        }
-                                    });
-                            });
-                        });
-                    } else {
-                        injectProducts(failurePath);
-                    }
-
-                    $scope.selection.selectedProduct = $scope.suggestedProducts[0];
-                });
-            }
-        };
+        // $scope.findProduct = function () {
+        //     $scope.suggestedProducts = [];
+        //
+        //     // Look up product suggestions via Bugzilla's api
+        //     const productSearch = $scope.productSearch;
+        //
+        //     if (productSearch) {
+        //         $scope.searching = 'Bugzilla';
+        //         $http.get(bzBaseUrl + 'rest/prod_comp_search/' + productSearch + '?limit=5').then(function (request) {
+        //             const data = request.data;
+        //             // We can't file unless product and component are provided, this api can return just product. Cut those out.
+        //             for (let i = data.products.length - 1; i >= 0; i--) {
+        //                 if (!data.products[i].component) {
+        //                     data.products.splice(i, 1);
+        //                 }
+        //             }
+        //             $scope.searching = false;
+        //             $scope.suggestedProducts = [];
+        //             $scope.suggestedProducts = data.products.map((prod) => {
+        //                 if (prod.product && prod.component) {
+        //                     return prod.product + ' :: ' + prod.component;
+        //                 }
+        //                 return prod.product;
+        //             });
+        //             $scope.selection.selectedProduct = $scope.suggestedProducts[0];
+        //         });
+        //     } else {
+        //         let failurePath = $uibModalInstance.parsedSummary[0][0];
+        //
+        //         // If the "TEST-UNEXPECTED-foo" isn't one of the omitted ones, use the next piece in the summary
+        //         if (failurePath.includes('TEST-UNEXPECTED-')) {
+        //             failurePath = $uibModalInstance.parsedSummary[0][1];
+        //             $uibModalInstance.possibleFilename = findFilename(failurePath);
+        //         }
+        //
+        //         // Try to fix up file paths for some job types.
+        //         if (selectedJob.job_group_name.toLowerCase().includes('spidermonkey')) {
+        //             failurePath = 'js/src/tests/' + failurePath;
+        //         }
+        //         if (selectedJob.job_group_name.toLowerCase().includes('videopuppeteer ')) {
+        //             failurePath = failurePath.replace('FAIL ', '');
+        //             failurePath = 'dom/media/test/external/external_media_tests/' + failurePath;
+        //         }
+        //         if (selectedJob.job_group_name.toLowerCase().includes('web platform')) {
+        //             failurePath = failurePath.startsWith('mozilla/tests') ?
+        //                 `testing/web-platform/${failurePath}` :
+        //                 `testing/web-platform/tests/${failurePath}`;
+        //         }
+        //
+        //         // Search mercurial's moz.build metadata to find products/components
+        //         $scope.searching = 'Mercurial';
+        //         $http.get(`${hgBaseUrl}mozilla-central/json-mozbuildinfo?p=${failurePath}`).then(function (firstRequest) {
+        //             if (firstRequest.data.aggregate && firstRequest.data.aggregate.recommended_bug_component) {
+        //                 const suggested = firstRequest.data.aggregate.recommended_bug_component;
+        //                 addProduct(suggested[0] + ' :: ' + suggested[1]);
+        //             }
+        //
+        //             $scope.searching = false;
+        //
+        //             // Make an attempt to find the file path via a dxr file search
+        //             if ($scope.suggestedProducts.length === 0 && $uibModalInstance.possibleFilename.length > 4) {
+        //                 $scope.searching = 'DXR & Mercurial';
+        //                 const dxrlink = `${dxrBaseUrl}mozilla-central/search?q=file:${$uibModalInstance.possibleFilename}&redirect=false&limit=5`;
+        //                 // Bug 1358328 - We need to override headers here until DXR returns JSON with the default Accept header
+        //                 $http.get(dxrlink, { headers: {
+        //                     Accept: 'application/json',
+        //                 } }).then((secondRequest) => {
+        //                     const results = secondRequest.data.results;
+        //                     let resultsCount = results.length;
+        //                     // If the search returns too many results, this probably isn't a good search term, so bail
+        //                     if (resultsCount === 0) {
+        //                         $scope.searching = false;
+        //                         injectProducts(failurePath);
+        //                     }
+        //                     results.forEach((result) => {
+        //                         $scope.searching = 'DXR & Mercurial';
+        //                         $http.get(`${hgBaseUrl}mozilla-central/json-mozbuildinfo?p=${result.path}`)
+        //                             .then((thirdRequest) => {
+        //                                 if (thirdRequest.data.aggregate && thirdRequest.data.aggregate.recommended_bug_component) {
+        //                                     const suggested = thirdRequest.data.aggregate.recommended_bug_component;
+        //                                     addProduct(suggested[0] + ' :: ' + suggested[1]);
+        //                                 }
+        //                                 // Only get rid of the throbber when all of these searches have completed
+        //                                 resultsCount -= 1;
+        //                                 if (resultsCount === 0) {
+        //                                     $scope.searching = false;
+        //                                     injectProducts(failurePath);
+        //                                 }
+        //                             });
+        //                     });
+        //                 });
+        //             } else {
+        //                 injectProducts(failurePath);
+        //             }
+        //
+        //             $scope.selection.selectedProduct = $scope.suggestedProducts[0];
+        //         });
+        //     }
+        // };
 
         /*
          *  Same as clicking outside of the modal, but with a nice button-clicking feel...
