@@ -1,5 +1,3 @@
-'use strict';
-
 const merge = require('deepmerge');
 const lintBase = require('neutrino-lint-base');
 const path = require('path');
@@ -7,7 +5,7 @@ const path = require('path');
 const CWD = process.cwd();
 const UI = path.join(CWD, 'ui');
 
-module.exports = neutrino => {
+module.exports = (neutrino) => {
     lintBase(neutrino);
     neutrino.config.module
         .rule('lint')
@@ -22,13 +20,13 @@ module.exports = neutrino => {
                 },
                 rules: {
                     // TODO: Fix & remove these deviations from AirBnB style (bug 1183749).
-                    'camelcase': 'off',
+                    camelcase: 'off',
                     'class-methods-use-this': 'off',
                     'consistent-return': 'off',
                     'default-case': 'off',
                     'func-names': 'off',
                     // Indentation is disabled pending a switch from 4 to 2 space for JS.
-                    'indent': 'off',
+                    indent: 'off',
                     'jsx-a11y/label-has-for': 'off',
                     'jsx-a11y/no-noninteractive-element-interactions': 'off',
                     'jsx-a11y/no-static-element-interactions': 'off',
@@ -49,7 +47,7 @@ module.exports = neutrino => {
                     'padded-blocks': 'off',
                     'prefer-arrow-callback': 'off',
                     'prefer-template': 'off',
-                    'radix': 'off',
+                    radix: 'off',
                     'react/forbid-prop-types': 'off',
                     'react/no-multi-comp': 'off',
                 },
